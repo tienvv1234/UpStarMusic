@@ -9,4 +9,46 @@ const Artist = require('../models/artist');
  * @return {promise} A promise that resolves with the artists, count, offset, and limit
  */
 module.exports = (criteria, sortProperty, offset = 0, limit = 20) => {
+      const query = Artist.find(buildQuery(criteria))
+    .sort({ [sortProperty]: 1 })
+    .skip(offset)
+    .limit(limit);
+
+  return Promise.all([query, Artist.find(buildQuery(criteria)).count()])
+    .then((results) => {
+      return {
+        artists: results[0],
+        total: results[1],
+        offset,
+        limit,
+      };
+    });
 };
+
+function buildQuery(criteria) {
+    const query = {};
+    
+    if (criteria.name) {
+        // require text index
+        // open mongo shell
+        // use UpStarMusic
+        // db.artists.createIndex({name: "text"})
+        query.$text = { $search: criteria.name };
+    }
+    
+    if (criteria.age) {
+        query.age = {
+            $gte: criteria.age.min,
+            $lte: criteria.age.max,
+        }; 
+    }
+    
+    if (criteria.yearsActive) {
+        query.yearsActive = {
+            $gte: criteria.yearsActive.min,
+            $lte: criteria.yearsActive.max,
+        };
+    }
+    
+    return query; 
+}
